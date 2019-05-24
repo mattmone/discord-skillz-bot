@@ -49,14 +49,30 @@ const commands = {
   "level up": levelUp
 };
 function levelUp(server, channelID, args) {
-  const [skill, member] = args.split(' ');
+  let foundSkill;
+  for(let skill in servers[server].skills) {
+    if(args.indexOf(skill) !== -1)
+      foundSkill = skill;
+  }
+  if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
+  const skill = foundSkill;
+  args = args.replace(foundSkill, '').trim();
+  const member = args;
   const memberid = member.replace('<@','').replace('>','').replace("!", "");
   if(!servers[server].skills[skill]) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
   servers[server].skills[skill][memberid]++;
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is now ${servers[server].skills[skill][memberid]}`});
 }
 function checkSkill(server, channelID, args) {
-  const [skill, member] = args.split(' ');
+  let foundSkill;
+  for(let skill in servers[server].skills) {
+    if(args.indexOf(skill) !== -1)
+      foundSkill = skill;
+  }
+  if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
+  const skill = foundSkill;
+  args = args.replace(foundSkill, '').trim();
+  const member = args;
   const memberid = member.replace('<@','').replace('>','').replace("!", "");
   if(!servers[server].skills[skill]) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is ${servers[server].skills[skill][memberid]}`});
