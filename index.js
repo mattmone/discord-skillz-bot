@@ -54,7 +54,7 @@ function skillTree(server, channelID, member) {
   const memberid = extractMemberid(member);
   let message = `Skill levels for ${member}:\n`;
   for(let skill in servers[server].skills)
-    if(servers[server].skills[skill][memberid]) message += `\`${skill} - ${servers[server].skills[skill][memberid]}\``;
+    if(servers[server].skills[skill][memberid]) message += `\`${skill} - ${servers[server].skills[skill][memberid]}\`\n`;
   bot.sendMessage({to: channelID, message: message});
 }
 function findSkill(needle) {
