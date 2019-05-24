@@ -46,7 +46,8 @@ bot.on("message", function(user, userID, channelID, message, event) {
 const commands = {
   "new skill": newSkill,
   "check skill": checkSkill,
-  "level up": levelUp
+  "level up": levelUp,
+  "server skills": serverSkills
 };
 function serverSkills(server, channelID) {
   let message = `Current skills on this server:\n`;
