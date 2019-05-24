@@ -61,7 +61,7 @@ function levelUp(server, channelID, args) {
     if(args.indexOf(skill) !== -1)
       foundSkill = skill;
   }
-  if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry, I'm afraid I can't do that. ${skill} does not exist.`});
+  if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry, I'm afraid I can't do that. That does not exist.`});
   const skill = foundSkill;
   args = args.replace(foundSkill, '').trim();
   const member = args;
@@ -76,7 +76,7 @@ function checkSkill(server, channelID, args) {
     if(args.indexOf(skill) !== -1)
       foundSkill = skill;
   }
-  if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry, I'm afraid I can't do that. ${skill} does not exist.`});
+  if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry, I'm afraid I can't do that. That does not exist.`});
   const skill = foundSkill;
   args = args.replace(foundSkill, '').trim();
   const member = args;
