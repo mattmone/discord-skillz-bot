@@ -29,7 +29,7 @@ bot.on("ready", function(event) {
 bot.on("message", function(user, userID, channelID, message, event) {
   //listen for bot mention
   if (message.indexOf(`<@${bot.id}>`) === -1) return;
-  let commandMatch = /(new skill|check skill|level up) (.+)/gi.exec(message);
+  let commandMatch = /(new skill|check skill|level up|server skills) (.+)/gi.exec(message);
   if(commandMatch === null) return;
   commandMatch.shift();
   const [command, args] = commandMatch;
@@ -48,6 +48,12 @@ const commands = {
   "check skill": checkSkill,
   "level up": levelUp
 };
+function serverSkills(server, channelID) {
+  let message = `Current skills on this server:\n`;
+  let skills = Object.keys(servers[server].skills);
+  message += skills.join(', ');
+  bot.sendMessage({to: channelID, message: message});
+}
 function levelUp(server, channelID, args) {
   let foundSkill;
   for(let skill in servers[server].skills) {
