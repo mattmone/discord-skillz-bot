@@ -50,9 +50,9 @@ const commands = {
   "server skills": serverSkills
 };
 function serverSkills(server, channelID) {
-  let message = `|Current skills on this server:|\n|`;
+  let message = `Current skills on this server:\n - `;
   let skills = Object.keys(servers[server].skills);
-  message += skills.join('|\n') + "|";
+  message += skills.join('\n - ');
   bot.sendMessage({to: channelID, message: message});
 }
 function levelUp(server, channelID, args) {
