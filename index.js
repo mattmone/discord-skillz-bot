@@ -37,7 +37,9 @@ bot.on("message", function(user, userID, channelID, message, event) {
   if(!commands[command]) return bot.sendMessage({to: channelID, message: `sorry, I don't understand.`});
   commands[command](event.d.guild_id, channelID, args);
   setTimeout(_ => {
-    fs.writeFile('./data/servers.json', JSON.stringify(servers));
+    fs.writeFile('./data/servers.json', JSON.stringify(servers), _ => {
+      console.log('wrote to servers.json');
+    });
   }, 1500);
 });
 
