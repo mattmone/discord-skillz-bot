@@ -29,7 +29,7 @@ bot.on("ready", function(event) {
 bot.on("message", function(user, userID, channelID, message, event) {
   //listen for bot mention
   if (message.indexOf(`<@${bot.id}>`) === -1 && message.indexOf(`<@!${bot.id}>`) === -1) return;
-  let commandMatch = /(new skill|check skill|level up|server skills) ?(.+)?/gi.exec(message);
+  let commandMatch = /(new skill|check skill|level up|server skills|skill tree) ?(.+)?/gi.exec(message);
   if(commandMatch === null) return;
   commandMatch.shift();
   const [command, args] = commandMatch;
@@ -47,8 +47,27 @@ const commands = {
   "new skill": newSkill,
   "check skill": checkSkill,
   "level up": levelUp,
-  "server skills": serverSkills
+  "server skills": serverSkills,
+  "skill tree": skillTree
 };
+function skillTree(server, channelID, member) {
+  const memberid = extractMemberid(member);
+  let message = `Skill levels for ${member}:\n`;
+  for(let skill in servers[server].skills)
+    if(servers[server].skills[skill][memberid]) message += `\`${skill} - ${servers[server].skills[skill][memberid]}\``;
+  bot.sendMessage({to: channelID, message: message});
+}
+function findSkill(needle) {
+  let foundSkill = false;
+  for(let skill in servers[server].skills) {
+    if(needle.indexOf(skill) !== -1)
+      foundSkill = skill;
+  }
+  return foundSkill;
+}
+function extractMemberid(member) {
+  return member.replace('<@','').replace('>','').replace("!", "");
+}
 function serverSkills(server, channelID) {
   let message = `Current skills on this server:\n - `;
   let skills = Object.keys(servers[server].skills);
@@ -56,31 +75,23 @@ function serverSkills(server, channelID) {
   bot.sendMessage({to: channelID, message: message});
 }
 function levelUp(server, channelID, args) {
-  let foundSkill;
-  for(let skill in servers[server].skills) {
-    if(args.indexOf(skill) !== -1)
-      foundSkill = skill;
-  }
+  let foundSkill = findSkill(args);
   if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry, I'm afraid I can't do that. That does not exist.`});
   const skill = foundSkill;
   args = args.replace(foundSkill, '').trim();
   const member = args;
-  const memberid = member.replace('<@','').replace('>','').replace("!", "");
+  const memberid = extractMemberid(member)
   if(!servers[server].skills[skill]) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
   servers[server].skills[skill][memberid]++;
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is now ${servers[server].skills[skill][memberid]}`});
 }
 function checkSkill(server, channelID, args) {
-  let foundSkill;
-  for(let skill in servers[server].skills) {
-    if(args.indexOf(skill) !== -1)
-      foundSkill = skill;
-  }
+  let foundSkill = findSkill(args);
   if(!foundSkill) return bot.sendMessage({to: channelID, message: `Sorry, I'm afraid I can't do that. That does not exist.`});
   const skill = foundSkill;
   args = args.replace(foundSkill, '').trim();
   const member = args;
-  const memberid = member.replace('<@','').replace('>','').replace("!", "");
+  const memberid = extractMemberid(member)
   if(!servers[server].skills[skill]) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is ${servers[server].skills[skill][memberid]}`});
 }
