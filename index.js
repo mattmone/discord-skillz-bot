@@ -29,6 +29,7 @@ bot.on("ready", function(event) {
 bot.on("message", function(user, userID, channelID, message, event) {
   //listen for bot mention
   if (message.indexOf(`<@${bot.id}>`) === -1) return;
+  console.log('checking for possible command:', message);
   let commandMatch = /(new skill|check skill|level up|server skills) (.+)/gi.exec(message);
   if(commandMatch === null) return;
   commandMatch.shift();
