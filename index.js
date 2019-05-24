@@ -50,13 +50,13 @@ const commands = {
 };
 function levelUp(server, channelID, args) {
   const [skill, member] = args.split(' ');
-  const memberid = member.replace('<@','').replace('>','');
+  const memberid = member.replace('<@','').replace('>','').replace("!", "");
   servers[server].skills[skill][memberid]++;
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is now ${servers[server].skills[skill][memberid]}`});
 }
 function checkSkill(server, channelID, args) {
   const [skill, member] = args.split(' ');
-  const memberid = member.replace('<@','').replace('>','');
+  const memberid = member.replace('<@','').replace('>','').replace("!", "");
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is ${servers[server].skills[skill][memberid]}`});
 }
 function newSkill(server, channelID, skill) {
