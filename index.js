@@ -1,6 +1,7 @@
 const Discord = require("discord.io");
 const logger = require("winston");
 const auth = require("./auth.json");
+const fs = require('fs');
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(new logger.transports.Console(), {
@@ -17,6 +18,8 @@ bot.on("ready", function(event) {
   logger.info("Connected");
   logger.info("Logged in as: ");
   logger.info(bot.username + " - (" + bot.id + ")");
+  if(fs.existsSync('./data/servers.json'))
+    servers = JSON.parse(fs.readFileSync('./data/servers.json'));
   for(server in bot.servers) {
     if(!servers[server]) servers[server] = {};
     servers[server].members = Object.assign(bot.servers[server].members);
@@ -33,6 +36,9 @@ bot.on("message", function(user, userID, channelID, message, event) {
   console.log(command, args);
   if(!commands[command]) return bot.sendMessage({to: channelID, message: `sorry, I don't understand.`});
   commands[command](event.d.guild_id, channelID, args);
+  setTimeout(_ => {
+    fs.writeFile('./data/servers.json', JSON.stringify(servers));
+  }, 1500);
 });
 
 const commands = {
