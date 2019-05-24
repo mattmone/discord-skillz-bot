@@ -51,12 +51,14 @@ const commands = {
 function levelUp(server, channelID, args) {
   const [skill, member] = args.split(' ');
   const memberid = member.replace('<@','').replace('>','').replace("!", "");
+  if(!servers[server].skills[skill]) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
   servers[server].skills[skill][memberid]++;
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is now ${servers[server].skills[skill][memberid]}`});
 }
 function checkSkill(server, channelID, args) {
   const [skill, member] = args.split(' ');
   const memberid = member.replace('<@','').replace('>','').replace("!", "");
+  if(!servers[server].skills[skill]) return bot.sendMessage({to: channelID, message: `Sorry ${member}, I'm afraid I can't do that. ${skill} does not exist.`});
   bot.sendMessage({to: channelID, message: `${skill} for ${member} is ${servers[server].skills[skill][memberid]}`});
 }
 function newSkill(server, channelID, skill) {
