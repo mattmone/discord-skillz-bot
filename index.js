@@ -56,8 +56,7 @@ const roomTypes = [
 ];
 function dungeonMap(server, channelID, args, member) {
   const boardSize = 36;
-  let board = new Array(boardSize);
-  board.map(row => new Array(boardSize));
+  let board = "0".repeat(boardSize).split("").map(row => "0".repeat(boardSize).split(""));
   board[0][0] = {type: 'entrance', fightChance: .25, lootChance: .25, gemChance: 0, oreChance: 0};
   board[0][1] = Math.random() >= 0.25;
   board[1][0] = !board[0][1] ? true : Math.random() > 0.5;
