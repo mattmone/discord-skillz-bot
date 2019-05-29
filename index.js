@@ -2,6 +2,7 @@ const Discord = require("discord.io");
 const logger = require("winston");
 const auth = require("./auth.json");
 const fs = require('fs');
+const { createCanvas } = require('canvas')
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(new logger.transports.Console(), {
@@ -106,8 +107,6 @@ const roomTypes = [
   "dungeon",
   "dungeon",
   "entrance",
-  "exit",
-  "exit",
   "exit"
 ];
 const monsters = [
@@ -116,6 +115,7 @@ const monsters = [
   "small boi"
 ];
 let lastGenerated;
+const roomSize = 20;
 function showLoot(server, channelID, args, member) {
   if(!servers[server].members[member].loot) servers[server].members[member].loot = {gold: 0, gems: 0, ores: 0};
   let loot = servers[server].members[member].loot;
@@ -125,19 +125,78 @@ function showLoot(server, channelID, args, member) {
   ${loot.ores} ores`;
   bot.sendMessage({to: channelID, message: message});
 }
+
 function drawRando(server, channelID) {
   const state = servers[server].dState;
   const { dungeon, userLocation} = state;
+  const canvasSize = roomSize*15;
+  const canvas = createCanvas(canvasSize, canvasSize)
+  const ctx = canvas.getContext('2d')
+  const openingSize = 1/4;
+  ctx.lineWidth = 2;
+  ctx.translate(canvasSize/2,canvasSize/2);
+  let dungeonArr = [];
+  for(let room in dungeon) {
+    dungeon[room].location = room;
+    dungeonArr.push(dungeon[room]);
+  }
+  dungeonArr.sort((a,b) => a.type > b.type ? 1 : -1);
+  for(let room of dungeonArr) {
+    let roomCoords = room.location;
+    const [x, y] = roomCoords.split(',').map(coord => parseInt(coord)*roomSize);
+    const [top, right, bottom, left] = [y-roomSize/2, x+roomSize/2, y+roomSize/2, x-roomSize/2];
+    // const room = dungeon[roomCoords];
+    ctx.strokeStyle = "#FFF";
+    if(room.type === 'entrance') ctx.strokeStyle = "#FFD700";
+    if(room.type === 'exit') ctx.strokeStyle = "#F00";
+    
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    if(room.exits[0] === 1) {
+      ctx.lineTo(left + roomSize*openingSize, top);
+      ctx.moveTo(left + roomSize*(1-openingSize), top);
+    }
+    ctx.lineTo(right, top);
+    if(room.exits[1] === 1) {
+      ctx.lineTo(right, top + roomSize*openingSize);
+      ctx.moveTo(right, top + roomSize*(1-openingSize));
+    }
+    ctx.lineTo(right, bottom);
+    if(room.exits[2] === 1) {
+      ctx.lineTo(left + roomSize*(1-openingSize), bottom);
+      ctx.moveTo(left + roomSize*openingSize, bottom);
+    }
+    ctx.lineTo(left, bottom);
+    if(room.exits[3] === 1) {
+      ctx.lineTo(left, top + roomSize*(1-openingSize));
+      ctx.moveTo(left, top + roomSize*openingSize);
+    }
+    ctx.lineTo(left, top);
+    ctx.stroke();
+    if(roomCoords === userLocation) {
+      ctx.fillStyle = "#0F0";
+      ctx.fillRect(left+roomSize*openingSize, top+roomSize*openingSize, roomSize-(roomSize*openingSize*2), roomSize-(roomSize*openingSize*2));
+    }
+  }
+  
+  const out = fs.createWriteStream(__dirname + '/dungeon.png');
+  const stream = canvas.createPNGStream();
+  stream.pipe(out);
+  out.on('finish', _ => {
+    return bot.uploadFile({to: channelID, message: `Dungeon Level ${state.level}`, file: __dirname + '/dungeon.png'});
+  })
 }
 function randomDungeon(server, channelID, args, member) {
   servers[server].dState = {};
   servers[server].dState.dungeon = {};
   let dungeon = servers[server].dState.dungeon;
-  servers[server].dState.userLocation = "5,5";
-  dungeon["5,5"] = {
+  servers[server].dState.userLocation = "0,0";
+  servers[server].dState.level = 1;
+  dungeon["0,0"] = {
     exits: generateMapRoom({minimumExits:3}),
     type: 'entrance'
   };
+  drawRando(server, channelID);
 }
 function posNumbers(position) {
   let pos = position.split(',');
@@ -146,31 +205,72 @@ function posNumbers(position) {
   return pos;
 }
 function posString(position) {
+  if(!position.join) return position;
   return position.join(",");
 }
 function checkForExclusions(dungeon, location, cameFrom) {
-  let exclusions = [];
+  let exclusions = new Set();
+  
+  if(Array.isArray(cameFrom)) cameFrom = posString(cameFrom);
   let checkNorth = [...location];
-  checkNorth[0]--;
+  checkNorth[1]--;
   checkNorth = posString(checkNorth);
-  if(dungeon[checkNorth] && checkNorth !== cameFrom && location[0] < 0) exclusions.push(0);
+  if(location[1] < -roomSize / 5) exclusions.add(0);
+  if(dungeon[checkNorth] && checkNorth !== cameFrom) exclusions.add(0);
   let checkEast = [...location];
-  checkEast[1]++;
+  checkEast[0]++;
   checkEast = posString(checkNorth);
-  if(dungeon[checkEast] && checkEast !== cameFrom && location[1] > 9) exclusions.push(1);
+  if(dungeon[checkEast] && checkEast !== cameFrom && location[0] > roomSize/5) exclusions.add(1);
   let checkSouth = [...location];
-  checkSouth[0]++;
+  checkSouth[1]++;
   checkSouth = posString(checkSouth);
-  if(dungeon[checkSouth] && checkSouth !== cameFrom && location[0] > 9) exclusions.push(2);
+  if(location[1] > roomSize / 5) exclusions.add(2);
+  if(dungeon[checkSouth] && checkSouth !== cameFrom) exclusions.add(2);
   let checkWest = [...location];
-  checkWest[1]--;
+  checkWest[0]--;
   checkWest = posString(checkWest);
-  if(dungeon[checkWest] && checkWest !== cameFrom && location[1] < 0) exclusions.push(3);
-  return exclusions;
+  if(dungeon[checkWest] && checkWest !== cameFrom && location[0] < roomSize/5) exclusions.add(3);
+  return Array.from(exclusions);
+}
+function checkForRequireds(dungeon, location, cameFrom) {
+  let requireds = new Set();
+  
+  if(Array.isArray(cameFrom)) cameFrom = posString(cameFrom);
+  let checkNorth = [...location];
+  checkNorth[1]--;
+  checkNorth = posString(checkNorth);
+  if(checkNorth === cameFrom) requireds.add(0);
+  if(dungeon[checkNorth])
+    if(dungeon[checkNorth][2] === 1)
+      requireds.add(0);
+  let checkEast = [...location];
+  checkEast[0]++;
+  checkEast = posString(checkEast);
+  if(checkEast === cameFrom) requireds.add(1);
+  if(dungeon[checkEast]) 
+    if(dungeon[checkEast][3] === 1)
+      requireds.add(1);
+  let checkSouth = [...location];
+  checkSouth[1]++;
+  checkSouth = posString(checkSouth);
+  if(checkSouth === cameFrom) requireds.add(2);
+  if(dungeon[checkSouth]) 
+    if(dungeon[checkSouth][0] === 1)
+      requireds.add(2);
+  let checkWest = [...location];
+  checkWest[0]--;
+  checkWest = posString(checkWest);
+  if(checkWest === cameFrom) requireds.add(3);
+  if(dungeon[checkWest]) 
+    if(dungeon[checkWest][1] === 1)
+      requireds.add(3);
+  return Array.from(requireds);
 }
 function goToDungeonRoom(server, channelID, args, member) {
   const state = servers[server].dState;
   const uLoc = posNumbers(state.userLocation);
+  let userLocation;
+  let generationOptions;
   const dungeon = state.dungeon;
   args = args.split(" ");
   const direction = args.shift();
@@ -179,72 +279,74 @@ function goToDungeonRoom(server, channelID, args, member) {
     case "north":
     case "up":
       if(dungeon[state.userLocation].exits[0] === 0) return badDirection(channelID, member);
-      uLoc[0]--;
-      const userLocation = posString(uLoc);
-      const generationOptions = {
+      uLoc[1]--;
+      userLocation = posString(uLoc);
+      generationOptions = {
         minimumExits: 1,
-        requiredExit: 2,
-        excludedExits: checkForExclusions(dungeon, uLoc, posNumbers(state.userLocation))
+        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
+        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
       }
-      if(!dungeon[userLocation]) generateMapRoom(generationOptions);
-      state.userLocation = userLocation;
       break;
     case "e":
     case "east":
     case "right":
-        if(dungeon[state.userLocation].exits[1] === 0) return badDirection(channelID, member);
-        uLoc[1]++;
-        const userLocation = posString(uLoc);
-        const generationOptions = {
-          minimumExits: 1,
-          requiredExit: 3,
-          excludedExits: checkForExclusions(dungeon, uLoc, posNumbers(state.userLocation))
-        }
-        if(!dungeon[userLocation]) generateMapRoom(generationOptions);
-        state.userLocation = userLocation;
+      if(dungeon[state.userLocation].exits[1] === 0) return badDirection(channelID, member);
+      uLoc[0]++;
+      userLocation = posString(uLoc);
+      generationOptions = {
+        minimumExits: 1,
+        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
+        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
+      }
       break;
     case "s":
     case "south":
     case "down":
       if(dungeon[state.userLocation].exits[2] === 0) return badDirection(channelID, member);
-      uLoc[0]++;
-      const userLocation = posString(uLoc);
-      const generationOptions = {
+      uLoc[1]++;
+      userLocation = posString(uLoc);
+      generationOptions = {
         minimumExits: 1,
-        requiredExit: 0,
-        excludedExits: checkForExclusions(dungeon, uLoc, posNumbers(state.userLocation))
+        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
+        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
       }
-      if(!dungeon[userLocation]) generateMapRoom(generationOptions);
-      state.userLocation = userLocation;
       break;
     case "w":
     case "west":
     case "left":
       if(dungeon[state.userLocation].exits[3] === 0) return badDirection(channelID, member);
-      uLoc[1]--;
-      const userLocation = posString(uLoc);
-      const generationOptions = {
+      uLoc[0]--;
+      userLocation = posString(uLoc);
+      generationOptions = {
         minimumExits: 1,
-        requiredExit: 1,
-        excludedExits: checkForExclusions(dungeon, uLoc, posNumbers(state.userLocation))
+        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
+        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
       }
-      if(!dungeon[userLocation]) generateMapRoom(generationOptions);
-      state.userLocation = userLocation;
       break;
     default:
       return badDirection(channelID, member);
       break;
   }
+  if(!dungeon[userLocation]) 
+    dungeon[userLocation] = { 
+      exits: generateMapRoom(generationOptions),
+      type: roomTypes[Math.floor(Math.random()*roomTypes.length)]
+    };
+  state.userLocation = userLocation;
   drawRando(server, channelID);
 }
 function generateMapRoom(options) {
-  const {minimumExits, requiredExit, maximumExits, excludedExits} = options;
+  let {minimumExits, requiredExits, maximumExits, excludedExits} = options;
+  if(requiredExits)
+    for(required of requiredExits) excludedExits = excludedExits.filter(exclude => exclude !== required);
   let filteredRooms = roomTemplates.filter(exits => exits.reduce((total, num) => total + num) >= minimumExits);
   if(excludedExits) 
-    for(exclude in excludedExits)
+    for(exclude of excludedExits)
       filteredRooms = filteredRooms.filter(exits => exits[exclude] === 0)
-  if(maximumExits) filteredRooms.filter(exits => exits.reduce((total, num) => total + num) <= minimumExits);
-  if(requiredExits) filteredRooms.filter(exits => exits[requiredExit] === 1);
+  if(maximumExits >= 0) filteredRooms = filteredRooms.filter(exits => exits.reduce((total, num) => total + num) <= minimumExits);
+  if(requiredExits) 
+    for(required of requiredExits)
+      filteredRooms = filteredRooms.filter(exits => exits[required] === 1)
   return filteredRooms[Math.floor(Math.random()*filteredRooms.length)];
 }
 function generateDungeon() {
@@ -491,7 +593,6 @@ function skillTree(server, channelID, member) {
 }
 function findSkill(needle, skillsList) {
   let foundSkill = false;
-  console.log(skillsList);
   for(let skill in skillsList) {
     if(needle.indexOf(skill) !== -1)
       foundSkill = skill;
