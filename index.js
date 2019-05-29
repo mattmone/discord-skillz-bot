@@ -43,7 +43,7 @@ bot.on("message", function(user, userID, channelID, message, event) {
   }
   if(commandMatch === null) return;
   commandMatch.shift();
-  const [command, args] = commandMatch;
+  let [command, args] = commandMatch;
   command = command.toLowerCase();
   console.log(command, args);
   if(!commands[command]) return bot.sendMessage({to: channelID, message: `sorry, I don't understand.`});
