@@ -69,7 +69,7 @@ const commands = {
   "exit dungeon": exitDungeon,
   "leave dungeon": exitDungeon,
   "show loot": showLoot,
-  "random dungeon": randomDungeon,
+  "random dungeon": newInstance,
   "go": goToDungeonRoom
 };
 const roomTemplates = [
@@ -125,10 +125,12 @@ function showLoot(server, channelID, args, member) {
   ${loot.ores} ores`;
   bot.sendMessage({to: channelID, message: message});
 }
-
-function drawRando(server, channelID) {
+function botMessage(channelID, message) {
+  return bot.sendMessage({to: channelID, message: message});
+}
+function drawInstance(server, channelID) {
   const state = servers[server].dState;
-  const { dungeon, userLocation} = state;
+  const { dungeon, userLocation } = state;
   const canvasSize = roomSize*15;
   const canvas = createCanvas(canvasSize, canvasSize)
   const ctx = canvas.getContext('2d')
@@ -175,6 +177,7 @@ function drawRando(server, channelID) {
     ctx.stroke();
     if(roomCoords === userLocation) {
       ctx.fillStyle = "#0F0";
+      if(state.dead) ctx.fillStyle = "#777";
       ctx.fillRect(left+roomSize*openingSize, top+roomSize*openingSize, roomSize-(roomSize*openingSize*2), roomSize-(roomSize*openingSize*2));
     }
   }
@@ -186,17 +189,21 @@ function drawRando(server, channelID) {
     return bot.uploadFile({to: channelID, message: `Dungeon Level ${state.level}`, file: __dirname + '/dungeon.png'});
   })
 }
-function randomDungeon(server, channelID, args, member) {
-  servers[server].dState = {};
-  servers[server].dState.dungeon = {};
-  let dungeon = servers[server].dState.dungeon;
-  servers[server].dState.userLocation = "0,0";
-  servers[server].dState.level = 1;
+function newInstance(server, channelID, args, member) {
+  if(servers[server].dState) botMessage(channelID, `Sorry <@${member}>, <@${servers[server].dState.member}> is already playing and to avoid confusion only 1 map may be played at a time.`);
+  servers[server].dState = {member: member, gold: 0, ores: 0, gems: 0, dead: false};
+  servers[server].dState.userLocation = startLevel(servers[server].dState, 1);
+  drawInstance(server, channelID);
+}
+function startLevel(state, level) {
+  state.dungeon = {};
+  let dungeon = state.dungeon;
+  state.level = level || 1;
   dungeon["0,0"] = {
     exits: generateMapRoom({minimumExits:3}),
     type: 'entrance'
   };
-  drawRando(server, channelID);
+  return "0,0";
 }
 function posNumbers(position) {
   let pos = position.split(',');
@@ -216,20 +223,30 @@ function checkForExclusions(dungeon, location, cameFrom) {
   checkNorth[1]--;
   checkNorth = posString(checkNorth);
   if(location[1] < -roomSize / 5) exclusions.add(0);
-  if(dungeon[checkNorth] && checkNorth !== cameFrom) exclusions.add(0);
+  if(dungeon[checkNorth])
+    if(dungeon[checkNorth].exits[2] === 0)
+      exclusions.add(0);
   let checkEast = [...location];
   checkEast[0]++;
-  checkEast = posString(checkNorth);
-  if(dungeon[checkEast] && checkEast !== cameFrom && location[0] > roomSize/5) exclusions.add(1);
+  checkEast = posString(checkEast);
+  if(location[0] > roomSize/5) exclusions.add(1);
+  if(dungeon[checkEast])
+    if(dungeon[checkEast].exits[3] === 0)
+      exclusions.add(1);
   let checkSouth = [...location];
   checkSouth[1]++;
   checkSouth = posString(checkSouth);
   if(location[1] > roomSize / 5) exclusions.add(2);
-  if(dungeon[checkSouth] && checkSouth !== cameFrom) exclusions.add(2);
+  if(dungeon[checkSouth])
+    if(dungeon[checkSouth].exits[0] === 0)
+      exclusions.add(2);
   let checkWest = [...location];
   checkWest[0]--;
   checkWest = posString(checkWest);
-  if(dungeon[checkWest] && checkWest !== cameFrom && location[0] < roomSize/5) exclusions.add(3);
+  if(location[0] < -roomSize/5) exclusions.add(3)
+  if(dungeon[checkWest])
+    if(dungeon[checkWest].exits[1] === 0)  
+      exclusions.add(3);
   return Array.from(exclusions);
 }
 function checkForRequireds(dungeon, location, cameFrom) {
@@ -241,51 +258,94 @@ function checkForRequireds(dungeon, location, cameFrom) {
   checkNorth = posString(checkNorth);
   if(checkNorth === cameFrom) requireds.add(0);
   if(dungeon[checkNorth])
-    if(dungeon[checkNorth][2] === 1)
+    if(dungeon[checkNorth].exits[2] === 1)
       requireds.add(0);
   let checkEast = [...location];
   checkEast[0]++;
   checkEast = posString(checkEast);
   if(checkEast === cameFrom) requireds.add(1);
   if(dungeon[checkEast]) 
-    if(dungeon[checkEast][3] === 1)
+    if(dungeon[checkEast].exits[3] === 1)
       requireds.add(1);
   let checkSouth = [...location];
   checkSouth[1]++;
   checkSouth = posString(checkSouth);
   if(checkSouth === cameFrom) requireds.add(2);
   if(dungeon[checkSouth]) 
-    if(dungeon[checkSouth][0] === 1)
+    if(dungeon[checkSouth].exits[0] === 1)
       requireds.add(2);
   let checkWest = [...location];
   checkWest[0]--;
   checkWest = posString(checkWest);
   if(checkWest === cameFrom) requireds.add(3);
   if(dungeon[checkWest]) 
-    if(dungeon[checkWest][1] === 1)
+    if(dungeon[checkWest].exits[1] === 1)
       requireds.add(3);
   return Array.from(requireds);
 }
+function resolveChance(type, level, increase) {
+  let chanceComputation = {
+    "fight": (1/7)*level,
+    "win": 1 - (1/64 * Math.pow(level, 2) + 0.1),
+    "gold": (1/7)*level + (increase ? (1/7)*level : 0),
+    "ores": (1/10)*level + (increase ? (1/10)*level : 0),
+    "gems": (1/15)*level + (increase ? (1/15)*level : 0)
+  };
+  const resolution = Math.random() < chanceComputation[type];
+  return resolution;
+}
+function exitInstance(state, channelID, member, server) {
+  const { level, gold, ores, gems, dead } = state;
+  if(dead) 
+    botMessage(channelID, `Ambushed by a ${monsters[Math.floor(Math.random()*monsters.length)]}, <@${member}> has died.
+What a bummer, you were at level ${level} and lost your dungeon loot:
+${gold} gold
+${gems} gems
+${ores} ores`);
+  else
+    botMessage(channelID, `Congratulations <@${member}> you have exited the dungeon alive!
+You travelled all the way to level ${level} and gained:
+${gold} gold
+${gems} gems
+${ores} ores`);
+  let memberLoot = servers[server].members[member].loot;
+  if(!dead) {
+    memberLoot.gold += gold;
+    memberLoot.gems += gems;
+    memberLoot.ores += ores;
+  }
+  delete servers[server].dState;
+}
 function goToDungeonRoom(server, channelID, args, member) {
   const state = servers[server].dState;
+  if(!state) return botMessage(channelID, `<@${member}>, you are not currently in a dungeon.`)
+  if(state.member !== member) return botMessage(channelID, `<@${state.member} is currently in the dungeon. <@${member}, please wait your turn.`)
   const uLoc = posNumbers(state.userLocation);
   let userLocation;
   let generationOptions;
   const dungeon = state.dungeon;
+  if(!args) return botMessage(channelID, "Go where?");
   args = args.split(" ");
   const direction = args.shift();
   switch(direction) {
+    case "d":
+    case "down":
+      if(dungeon[state.userLocation].type !== 'exit') return badDirection(channelID, member);
+      state.level++;
+      userLocation = startLevel(state, state.level);
+      break;
+    case "u":
+    case "up":
+    case "out":
+      if(dungeon[state.userLocation].type !== 'entrance') return badDirection(channelID, member);
+      return exitInstance(state, channelID, member, server);
+      break;
     case "n":
     case "north":
     case "up":
       if(dungeon[state.userLocation].exits[0] === 0) return badDirection(channelID, member);
       uLoc[1]--;
       userLocation = posString(uLoc);
-      generationOptions = {
-        minimumExits: 1,
-        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
-        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
-      }
       break;
     case "e":
     case "east":
@@ -293,11 +353,6 @@ function goToDungeonRoom(server, channelID, args, member) {
       if(dungeon[state.userLocation].exits[1] === 0) return badDirection(channelID, member);
       uLoc[0]++;
       userLocation = posString(uLoc);
-      generationOptions = {
-        minimumExits: 1,
-        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
-        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
-      }
       break;
     case "s":
     case "south":
@@ -305,11 +360,6 @@ function goToDungeonRoom(server, channelID, args, member) {
       if(dungeon[state.userLocation].exits[2] === 0) return badDirection(channelID, member);
       uLoc[1]++;
       userLocation = posString(uLoc);
-      generationOptions = {
-        minimumExits: 1,
-        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
-        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
-      }
       break;
     case "w":
     case "west":
@@ -317,23 +367,49 @@ function goToDungeonRoom(server, channelID, args, member) {
       if(dungeon[state.userLocation].exits[3] === 0) return badDirection(channelID, member);
       uLoc[0]--;
       userLocation = posString(uLoc);
-      generationOptions = {
-        minimumExits: 1,
-        requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
-        excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
-      }
       break;
     default:
       return badDirection(channelID, member);
       break;
   }
-  if(!dungeon[userLocation]) 
+  let fight, win=true;
+  if(!dungeon[userLocation]) {
+    generationOptions = {
+      minimumExits: 1,
+      requiredExits: checkForRequireds(dungeon, uLoc, state.userLocation),
+      excludedExits: checkForExclusions(dungeon, uLoc, state.userLocation)
+    };
     dungeon[userLocation] = { 
       exits: generateMapRoom(generationOptions),
       type: roomTypes[Math.floor(Math.random()*roomTypes.length)]
     };
+    console.log(generationOptions, dungeon[userLocation]);
+    fight = resolveChance('fight', state.level);
+    if(fight) win = resolveChance('win', state.level);
+    if(win) {
+      const roomGold = resolveChance('gold', state.level, fight) ? rollDice(6, fight ? state.level*2 : state.level) : 0;
+      const roomOres = resolveChance('ores', state.level, fight) ? rollDice(4, fight ? state.level*2 : state.level) : 0;
+      const roomGems = resolveChance('gems', state.level, fight) ? rollDice(2, fight ? state.level*2 : state.level) : 0;
+      let message = '';
+      if(fight)
+        message += `<@${member}>, you fought a level ${state.level} ${monsters[Math.floor(Math.random()*monsters.length)]} and won!\n`
+      if(roomGold > 0)
+        message += `You found ${roomGold} gold in this room!\n`;
+      if(roomOres > 0)
+        message += `You found ${roomOres} ores in this room!\n`;
+      if(roomGems > 0)
+        message += `You found ${roomGems} gems in this room!\n`;
+      botMessage(channelID, message);
+      state.gold += roomGold;
+      state.ores += roomOres;
+      state.gems += roomGems;
+    } else if(fight) {
+      state.dead = true;
+      setTimeout(_ => { exitInstance(state, channelID, member, server); }, 500);
+    }
+  }
   state.userLocation = userLocation;
-  drawRando(server, channelID);
+  drawInstance(server, channelID);
 }
 function generateMapRoom(options) {
   let {minimumExits, requiredExits, maximumExits, excludedExits} = options;
