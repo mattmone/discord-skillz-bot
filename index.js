@@ -17,6 +17,7 @@ const bot = new Discord.Client({
 let servers = {};
 bot.on("ready", function(event) {
   bot.setPresence({game: {name: "Dungeon Master", type: 0}});
+  bot.editUserInfo({avatar: fs.readFileSync('./bot-avatar.jpg', 'base64')})
   logger.info("Connected");
   logger.info("Logged in as: ");
   logger.info(bot.username + " - (" + bot.id + ")");
