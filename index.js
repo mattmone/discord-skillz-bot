@@ -2,7 +2,12 @@ const Discord = require("discord.io");
 const logger = require("winston");
 const auth = require("./auth.json");
 const fs = require('fs');
-const { createCanvas } = require('canvas')
+const { createCanvas, loadImage } = require('canvas');
+
+let floor;
+loadImage('./floor-20.jpg').then(image) => {
+  floor = image;
+}
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(new logger.transports.Console(), {
@@ -184,6 +189,7 @@ function drawInstance(server, channelID) {
     ctx.strokeStyle = "#FFF";
     if(room.type === 'entrance') ctx.strokeStyle = "#FFD700";
     if(room.type === 'exit') ctx.strokeStyle = "#F00";
+    ctx.drawImage(floor, left, top, roomSize, roomSize);
     
     ctx.beginPath();
     ctx.moveTo(left, top);
