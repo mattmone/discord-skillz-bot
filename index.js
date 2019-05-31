@@ -39,7 +39,7 @@ bot.on("message", function(user, userID, channelID, message, event) {
   if(userID === bot.id) return;
   let commandMatch;
   if(channelID == 580758335519850506)
-    commandMatch = /(new skill|check skill|level up|server skills|skill tree|dungeon map|enter dungeon|(?:dungeon )?move|exit dungeon|leave dungeon|show loot|random dungeon|go) ?(.+)?/gi.exec(message);
+    commandMatch = /(new skill|check skill|level up|server skills|skill tree|dungeon map|enter dungeon|(?:dungeon )?move|show loot|random dungeon|go) ?(.+)?/gi.exec(message);
   else {
     if (message.indexOf(`<@${bot.id}>`) === -1 && message.indexOf(`<@!${bot.id}>`) === -1) return;
     commandMatch = /(new skill|check skill|level up|server skills|skill tree|random dungeon|go) ?(.+)?/gi.exec(message);
