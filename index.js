@@ -6,6 +6,7 @@ const { createCanvas, loadImage } = require('canvas');
 
 (async () => {
 let floor = await loadImage('./floor-20.jpg');
+let character = await loadImage('./character.png');
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(new logger.transports.Console(), {
@@ -53,7 +54,7 @@ bot.on("message", function(user, userID, channelID, message, event) {
   commandMatch.shift();
   let [command, args] = commandMatch;
   command = command.toLowerCase();
-  console.log(command, args);
+  console.log(command, args || '');
   if(!commands[command]) return bot.sendMessage({to: channelID, message: `sorry, I don't understand.`});
   commands[command](event.d.guild_id, channelID, args, userID);
   setTimeout(_ => {
@@ -213,9 +214,11 @@ function drawInstance(server, channelID) {
     ctx.lineTo(left, top);
     ctx.stroke();
     if(roomCoords === userLocation) {
-      ctx.fillStyle = "#0F0";
-      if(state.dead) ctx.fillStyle = "#777";
-      ctx.fillRect(left+roomSize*openingSize, top+roomSize*openingSize, roomSize-(roomSize*openingSize*2), roomSize-(roomSize*openingSize*2));
+      if(state.dead) {
+        ctx.fillStyle = "#777";
+        ctx.fillRect(left+roomSize*openingSize, top+roomSize*openingSize, roomSize-(roomSize*openingSize*2), roomSize-(roomSize*openingSize*2));
+      } else 
+        ctx.drawImage(character, left + roomSize*openingSize, top+roomSize*openingSize);
     }
   }
   
