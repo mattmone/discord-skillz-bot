@@ -361,9 +361,7 @@ function goToDungeonRoom(server, channelID, args, member) {
   const dungeon = state.dungeon;
   if(!args) return botMessage(channelID, "Go where?");
   args = args.split(" ");
-  console.log(args);
   const direction = args.shift();
-  console.log(args);
   switch(direction) {
     case "d":
     case "down":
@@ -444,7 +442,7 @@ function goToDungeonRoom(server, channelID, args, member) {
       state.dead = true;
       setTimeout(_ => { exitInstance(state, channelID, member, server); }, 500);
     }
-  }
+  } else if(args.join('').match(/⬇|⬆|⬅|➡|⤵|⤴/ig)) commands[args.shift()](server, channelID, args.join(''), member);
   state.userLocation = userLocation;
   drawInstance(server, channelID);
 }
