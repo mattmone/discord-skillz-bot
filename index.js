@@ -362,6 +362,7 @@ function goToDungeonRoom(server, channelID, args, member) {
   if(!args) return botMessage(channelID, "Go where?");
   args = args.split(" ");
   const direction = args.shift();
+  console.log(args);
   switch(direction) {
     case "d":
     case "down":
