@@ -4,6 +4,7 @@ const auth = require("./auth.json");
 const fs = require('fs');
 const { createCanvas, loadImage } = require('canvas');
 
+(async () => {
 let floor = await loadImage('./floor-20.jpg');
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -758,3 +759,4 @@ function newSkill(server, channelID, skill, sender) {
     message += `<@${member}>: ${servers[server].skills[skill][member]}\n`
   bot.sendMessage({to: channelID, message: message});
 }
+})();
