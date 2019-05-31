@@ -40,7 +40,7 @@ bot.on("message", function(user, userID, channelID, message, event) {
   let commandMatch;
   if(channelID == 580758335519850506) {
     console.log(message);
-    commandMatch = /(new skill|check skill|level up|server skills|skill tree|dungeon map|enter dungeon|(?:dungeon )?move|show loot|random dungeon|rando(?: dungo)?|go) ?(.+)?/gi.exec(message);
+    commandMatch = /(new skill|check skill|level up|server skills|skill tree|dungeon map|enter dungeon|(?:dungeon )?move|show loot|random dungeon|rando(?: dungo)?|go|↑) ?(.+)?/gi.exec(message);
   }
   else {
     if (message.indexOf(`<@${bot.id}>`) === -1 && message.indexOf(`<@!${bot.id}>`) === -1) return;
@@ -76,7 +76,8 @@ const commands = {
   "random dungeon": newInstance,
   "go": goToDungeonRoom,
   "rando": newInstance,
-  "rando dungo": newInstance
+  "rando dungo": newInstance,
+  "↑": (a,b,c,d) => { return goToDungeonRoom(a,b,"n",d); }
 };
 const roomTemplates = [
   [1,1,1,1],
