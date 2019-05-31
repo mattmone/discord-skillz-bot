@@ -331,6 +331,8 @@ You travelled all the way to level ${level} and gained:
 ${gold} gold
 ${gems} gems
 ${ores} ores`);
+  if(!servers[server].members[member]) servers[server].members[member] = {loot: {}};
+  if(!servers[server].members[member].loot) servers[server].members[member].loot = {};
   let memberLoot = servers[server].members[member].loot;
   if(!dead) {
     memberLoot.gold += gold;
