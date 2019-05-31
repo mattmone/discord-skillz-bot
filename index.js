@@ -443,8 +443,9 @@ function goToDungeonRoom(server, channelID, args, member) {
       state.dead = true;
       setTimeout(_ => { exitInstance(state, channelID, member, server); }, 500);
     }
-  } else if(args.join(' ').match(/⬇|⬆|⬅|➡|⤵|⤴/ig)) commands[args.shift()](server, channelID, args.join(' '), member);
+  }
   state.userLocation = userLocation;
+  if(args.join(' ').match(/⬇|⬆|⬅|➡|⤵|⤴/ig)) return commands[args.shift()](server, channelID, args.join(' '), member);
   drawInstance(server, channelID);
 }
 function generateMapRoom(options) {
