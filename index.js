@@ -79,12 +79,12 @@ const commands = {
   "rando": newInstance,
   "rando dungo": newInstance,
   "🆕": newInstance,
-  "⬆": (a,b,c,d) => { return goToDungeonRoom(a,b,"n",d); },
-  "⬇": (a,b,c,d) => { return goToDungeonRoom(a,b,"s",d); },
-  "⬅": (a,b,c,d) => { return goToDungeonRoom(a,b,"w",d); },
-  "➡": (a,b,c,d) => { return goToDungeonRoom(a,b,"e",d); },
-  "⤵": (a,b,c,d) => { return goToDungeonRoom(a,b,"d",d); },
-  "⤴": (a,b,c,d) => { return goToDungeonRoom(a,b,"u",d); },
+  "⬆": (a,b,c,d) => { return goToDungeonRoom(a,b,`n ${c || ''}`,d); },
+  "⬇": (a,b,c,d) => { return goToDungeonRoom(a,b,`s ${c || ''}`,d); },
+  "⬅": (a,b,c,d) => { return goToDungeonRoom(a,b,`w ${c || ''}`,d); },
+  "➡": (a,b,c,d) => { return goToDungeonRoom(a,b,`e ${c || ''}`,d); },
+  "⤵": (a,b,c,d) => { return goToDungeonRoom(a,b,`d ${c || ''}`,d); },
+  "⤴": (a,b,c,d) => { return goToDungeonRoom(a,b,`u ${c || ''}`,d); },
 };
 const roomTemplates = [
   [1,1,1,1],
@@ -361,7 +361,9 @@ function goToDungeonRoom(server, channelID, args, member) {
   const dungeon = state.dungeon;
   if(!args) return botMessage(channelID, "Go where?");
   args = args.split(" ");
+  console.log(args);
   const direction = args.shift();
+  console.log(args);
   switch(direction) {
     case "d":
     case "down":
