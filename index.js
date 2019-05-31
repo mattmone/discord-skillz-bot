@@ -4,10 +4,7 @@ const auth = require("./auth.json");
 const fs = require('fs');
 const { createCanvas, loadImage } = require('canvas');
 
-let floor;
-loadImage('./floor-20.jpg').then(image) => {
-  floor = image;
-}
+let floor = await loadImage('./floor-20.jpg');
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(new logger.transports.Console(), {
