@@ -3,6 +3,8 @@ const logger = require("winston");
 const auth = require("./auth.json");
 const fs = require('fs');
 const { createCanvas, loadImage } = require('canvas');
+const { monsters } = require('./constants/denizens.js');
+const { roomTemplates, roomTypes, roomSize } = require('./constants/rooms.js');
 
 (async () => {
 let floor = await loadImage('./floor-20.jpg');
@@ -90,69 +92,8 @@ const commands = {
   "⤵": (a,b,c,d) => { return goToDungeonRoom(a,b,`d ${c || ''}`,d); },
   "⤴": (a,b,c,d) => { return goToDungeonRoom(a,b,`u ${c || ''}`,d); },
 };
-const roomTemplates = [
-  [1,1,1,1],
-  [0,1,1,1],
-  [1,0,1,1],
-  [1,1,0,1],
-  [1,1,1,0],
-  [0,0,1,1],
-  [0,1,0,1],
-  [0,1,1,0],
-  [1,0,0,1],
-  [1,1,0,0],
-  [1,0,1,0],
-  [1,0,0,0],
-  [0,1,0,0],
-  [0,0,1,0],
-  [0,0,0,1]
-];
-const roomTypes = [
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "dungeon",
-  "entrance",
-  "exit"
-];
-const monsters = [
-  "data goblin",
-  "dragon duck 🐲",
-  "small boi",
-  "large boi",
-  "aquasquirrel",
-  "AI",
-  "'the man'",
-  "bad performance eval",
-  "toed shoe",
-  "doorcat",
-  "Ralph's food truck"
-];
-const bosses = [
-  {"name": "winux"},
-  {"name": "bashell"},
-  {"name": "internet explorer"},
-  {"name": "xRM"},
-  {"name": "squid father"},
-  {"name": "Nate's Elo"},
-  {"name": "Elon Musk"},
-  {"name": "the tatterdemalion"},
-  {"name": "the BMC"}
-];
+
 let lastGenerated;
-const roomSize = 20;
 function showLoot(server, channelID, args, member) {
   if(!servers[server].members[member].loot) servers[server].members[member].loot = {gold: 0, gems: 0, ores: 0};
   let loot = servers[server].members[member].loot;
