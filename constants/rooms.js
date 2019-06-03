@@ -18,13 +18,11 @@ const templates = [
 ];
 
 const types = [
-  "dungeon",
-  "entrance",
-  "exit"
+  "dungeon"
 ];
 
 const size = 20;
-module.export = {
+module.exports = {
   roomTemplates: templates,
   roomTypes: types,
   roomSize: size

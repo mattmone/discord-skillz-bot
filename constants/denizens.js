@@ -23,7 +23,7 @@ const bosses = [
   { name: "the tatterdemalion" },
   { name: "the BMC" }
 ];
-module.export = {
+module.exports = {
   monsters: monsters,
   bosses: bosses
 };

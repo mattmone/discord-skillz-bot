@@ -1,4 +1,5 @@
 /node_modules
 /auth.json
 /data
-/dungeon.png
+/dungeon/canvas/*.png
+/dungeon/min/*.png

@@ -13,6 +13,8 @@
   "dependencies": {
     "canvas": "^2.5.0",
     "discord.io": "github:woor/discord.io#gateway_v6",
+    "imagemin": "^6.1.0",
+    "imagemin-pngquant": "^8.0.0",
     "winston": "^3.2.1"
   }
 }
