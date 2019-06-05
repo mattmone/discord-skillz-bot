@@ -7,6 +7,7 @@ const { monsters } = require("./constants/denizens.js");
 const { roomTemplates, roomTypes, roomSize } = require("./constants/rooms.js");
 const { posString, posNumbers } = require('./utilities/position.js');
 const { checkForExclusions, checkForRequireds } = require('./utilities/checks.js');
+const { melee, range, spells } = require('./items/weapons.js');
 const imagemin = require('imagemin');
 const imageminPngquant = require('imagemin-pngquant');
 
@@ -42,9 +43,9 @@ const imageminPngquant = require('imagemin-pngquant');
     if (userID === bot.id) return;
     if(!servers[event.d.guild_id].members[userID]) updateMembers();
     let commandMatch;
-    if (channelID == 580758335519850506) {
+    if (channelID == 580758335519850506 || channelID == 581255423164940290) {
       console.log(message);
-      commandMatch = /^(new skill|check skill|level up|server skills|skill tree|dungeon map|enter dungeon|(?:dungeon )?move|show loot|random dungeon|rando(?: dungo)?|go|⬇|⬆|⬅|➡|⤵|⤴|🆕|💰) ?(.+)?/gi.exec(
+      commandMatch = /^(new skill|check skill|level up|server skills|skill tree|dungeon map|enter dungeon|(?:dungeon )?move|show loot|random dungeon|rando(?: dungo)?|go|⬇|⬆|⬅|➡|⤵|⤴|🆕|💰|shop|buy|show inventory) ?(.+)?/gi.exec(
         message
       );
     } else {
@@ -102,10 +103,13 @@ const imageminPngquant = require('imagemin-pngquant');
     "dungeon map": drawInstance,
     "enter dungeon": newInstance,
     "dungeon move": goToDungeonRoom,
-    move: goToDungeonRoom,
+    "move": goToDungeonRoom,
+    "shop": listItems,
+    "buy": buyItem,
     // "exit dungeon": exitDungeon,
     // "leave dungeon": exitDungeon,
     "show loot": showLoot,
+    "show inventory": showInventory,
     "💰": showLoot,
     "random dungeon": newInstance,
     go: goToDungeonRoom,
@@ -136,12 +140,143 @@ const imageminPngquant = require('imagemin-pngquant');
   async function showLoot(server, channelID, args, member) {
     if (!servers[server].members[member].loot)
       servers[server].members[member].loot = { gold: 0, gems: 0, ores: 0 };
-    let loot = servers[server].members[member].loot;
+    let { loot } = servers[server].members[member];
     let message = `<@${member}>'s current loot:
   ${loot.gold} gold
   ${loot.gems} gems
   ${loot.ores} ores`;
     messages.push(message);
+  }
+  function listItem(item, totalSpace) {
+    let spaceLength = totalSpace - item.type.length - `${item.cost}`.length - `${item.level}`.length - `${item.modifier}`.length - 6;
+    let listing = `| ${item.type}${' '.repeat(spaceLength)}${item.level}D${item.modifier} ${item.cost} |`;
+    return listing;
+  }
+  async function listItems(server, channelID, args, member) {
+    messages.push('```');
+    const itemLength = 34;
+    messages.push('-'.repeat(itemLength));
+    let [ type, category ] = (args || '0 0').split(' ');
+    
+    switch(type) {
+      case "weapon":
+      case "weapons":
+        switch(category) {
+          case "melee":
+            melee.forEach(weapon => {messages.push(listItem(weapon, itemLength))});
+            break;
+          case "range":
+            range.forEach(weapon => {messages.push(listItem(weapon, itemLength))});
+            break;
+          case "spells":
+            spells.forEach(weapon => {messages.push(listItem(weapon, itemLength))});
+            break;
+          default:
+            messages.push(`What kind of weapons? I have melee, range, and spells.`);
+            break;
+        }
+        break;
+      case "armor":
+        messages.push(`Sorry, there is no armor yet, check back later.`)
+        break;
+      case "rings":
+        messages.push(`Sorry, there are no rings yet, check back later.`)
+        break;
+      default:
+        messages.push(`What are you shopping for? You can choose weapons, armor, or rings.`);
+        break;
+    }
+    messages.push('-'.repeat(itemLength));
+    messages.push('```');
+  }
+  async function buyItem(server, channelID, args, member) {
+    if(!servers[server].members[member].items) servers[server].members[member].items = {};
+    let { items, loot } = servers[server].members[member];
+    let shopCommands = (args || '0 0 0').split(' ');
+    let type = shopCommands.shift();
+    let category = shopCommands.shift();
+    let item = shopCommands.join(' ');
+    let desired;
+    switch(type) {
+      case 'weapon':
+      case 'weapons':
+        if(!items.weapons) items.weapons = [];
+        switch(category) {
+          case 'melee':
+            [ desired ] = melee.filter(m => m.type === item);
+            if(!desired) {
+              messages.push(`You said you were looking for a ${item || 'weapon'}, but I don't see that here.`);
+              break;
+            }
+            if(loot.gold < desired.cost) {
+              messages.push(`Sorry, but that costs ${desired.cost} gold and you only have ${loot.gold} gold.`);
+              break;
+            }
+            items.weapons.unshift(Object.assign({}, desired));
+            loot.gold -= desired.cost;
+            messages.push(`You have bought a ${item}.`);
+            break;
+          case 'range':
+          case 'ranged':
+            [ desired ] = range.filter(m => m.type === item);
+            if(!desired) {
+              messages.push(`You said you were looking for a ${item || 'weapon'}, but I don't see that here.`);
+              break;
+            }
+            if(loot.gold < desired.cost) {
+              messages.push(`Sorry, but that costs ${desired.cost} gold and you only have ${loot.gold} gold.`);
+              break;
+            }
+            loot.gold -= desired.cost;
+            items.weapons.unshift(Object.assign({}, desired));
+            messages.push(`You have bought a ${item}.`);
+            break;
+          case 'spell':
+          case 'spells':
+            [ desired ] = spells.filter(m => m.type === item);
+            if(!desired) {
+              messages.push(`You said you were looking for a ${item || 'spell'}, but I don't see that here.`);
+              break;
+            }
+            if(loot.gold < desired.cost) {
+              messages.push(`Sorry, but that costs ${desired.cost} gold and you only have ${loot.gold} gold.`);
+              break;
+            }
+            loot.gold -= desired.cost;
+            items.weapons.unshift(Object.assign({}, desired));
+            messages.push(`You have bought a ${item}.`);
+            break;
+          default:
+            messages.push(`What type of weapon are you trying to buy? There are melee, ranged, and spells`);
+            break;
+        }
+        break;
+      case 'armor':
+      case 'armour':
+        messages.push(`Sorry, there is no armor to buy yet. Check back later.`)
+        break;
+      case 'ring':
+      case 'rings':
+        messages.push(`Sorry, there are no rings to buy yet. Check back later.`)
+        break;
+      default:
+        messages.push(`What type of item are you trying to buy? You can choose weapon, armor, or ring.`);
+        break;
+    }
+  }
+  async function showInventory(server, channelID, args, member) {
+    messages.push('```');
+    let { items } = servers[server].members[member];
+    messages.push(`${'-'.repeat(5)}WEAPONS${'-'.repeat(21)}`);
+    if(items.weapons) items.weapons.forEach(item => messages.push(listItem(item, 34)));
+    else messages.push(`| none${' '.repeat(27)}|`);
+    messages.push(`${'-'.repeat(5)}ARMOR${'-'.repeat(23)}`);
+    if(items.armor) items.armor.forEach(item => messages.push(listItem(item, 34)));
+    else messages.push(`| none${' '.repeat(27)}|`);
+    messages.push(`${'-'.repeat(5)}RINGS${'-'.repeat(23)}`);
+    if(items.rings) items.rings.forEach(item => messages.push(listItem(item, 34)));
+    else messages.push(`| none${' '.repeat(27)}|`);
+    messages.push('```');
   }
   async function drawInstance(server) {
     return new Promise((resolve, reject) => {
@@ -243,6 +378,15 @@ const imageminPngquant = require('imagemin-pngquant');
     };
     if (!servers[server].members[member].loot)
       servers[server].members[member].loot = { gold: 0, gems: 0, ores: 0 };
+    if (!servers[server].members[member].items)
+      servers[server].members[member].items = {weapons: [], armor: [], rings: []};
+    servers[server].dState.items = {
+      weapon: [...(servers[server].members[member].items.weapons || []) ].splice(0,1)[0],
+      armor: [...(servers[server].members[member].items.armor || []) ].splice(0,1)[0],
+      rings: [...(servers[server].members[member].items.rings || [])].splice(0,2)
+    };
+    if(servers[server].dState.items.weapon)
+      messages.push(`Grabbing your trusty ${servers[server].dState.items.weapon.type}, you enter Rando Dungo!`)
     servers[server].dState.userLocation = startLevel(servers[server].dState, 1);
     return await drawInstance(server);
   }
@@ -257,7 +401,19 @@ const imageminPngquant = require('imagemin-pngquant');
     };
     return "0,0";
   }
-  function resolveChance(type, level, increase) {
+  function checkForModifiers(items, type) {
+    let modifier = 0;
+    switch(type) {
+      case "lose":
+        if(items.weapon)
+          modifier += rollDice(items.weapon.modifier, items.weapon.level);
+        if(items.armor)
+          modifier += rollDice(items.armor.modifier, items.armor.level);
+        break;
+    }
+    return modifier;
+  }
+  function resolveChance(items, type, level, increase) {
     let chanceComputation = {
       fight: rollDice(4, level),
       lose: rollDice(4, level),
@@ -265,18 +421,23 @@ const imageminPngquant = require('imagemin-pngquant');
       ores: rollDice(4, level) + (increase ? rollDice(4, level) : 0),
       gems: rollDice(4, level) + (increase ? rollDice(4, level) : 0)
     };
+    let modifier = checkForModifiers(items, type);
     let yourRoll = rollDice(20,1);
+    let yourTotal =  yourRoll + modifier;
     let monsterRoll = chanceComputation[type];
-    console.log(type, ':', 'You', yourRoll, 'Them', monsterRoll);
-    const resolution =  yourRoll <= monsterRoll;
+    console.log(type, ':', 'You', yourRoll, 'modifier', modifier, 'Them', monsterRoll);
+    const resolution =  yourTotal < monsterRoll;
     if(type === 'lose') {
-      if(!resolution) messages.push(`You rolled a ${yourRoll} winning against the monster's ${monsterRoll}`);
-      else messages.push(`You lost with your roll being ${yourRoll} to the monster's ${monsterRoll}.`);
+      if(!resolution) messages.push(`${"```CSS\n"}You rolled a ${yourRoll} ${modifier ? `and have a modifier of ${modifier}, so you have a total of ${yourTotal} ` : ''}which wins against the monster's ${monsterRoll}.${"\n```"}`);
+      else messages.push(`${"```HTTP\n"}You lost! You rolled a ${yourRoll} ${modifier ? `and even modified with ${modifier} you got a ${yourTotal}` : ''}, which doesn't beat the monster's ${monsterRoll}.${"\n```"}`);
     }
     return resolution;
   }
   function exitInstance(state, channelID, member, server) {
-    const { level, gold, ores, gems, dead } = state;
+    const { level, gold, ores, gems, dead, entered } = state;
+    if(!servers[server].members[member].timeInDungeon)
+      servers[server].members[member].timeInDungeon = 0;
+    servers[server].members[member].timeInDungeon += (new Date()) - entered;
     if (dead)
       messages.push(
         `Ambushed by a ${monsters[Math.floor(Math.random() * monsters.length)]}, <@${member}> has died.
@@ -404,21 +565,22 @@ ${ores} ores`
         type: type
       };
       console.log(generationOptions, dungeon[userLocation]);
-      fight = resolveChance("fight", state.level);
-      if (fight) lose = resolveChance("lose", state.level);
+      let {items, level} = state;
+      fight = resolveChance(items, "fight", level);
+      if (fight) lose = resolveChance(items, "lose", level);
       if (!lose) {
-        const roomGold = resolveChance("gold", state.level, fight)
-          ? rollDice(6, fight ? state.level * 2 : state.level)
+        const roomGold = resolveChance(items, "gold", level, fight)
+          ? rollDice(6, fight ? level * 2 : level)
           : 0;
-        const roomOres = resolveChance("ores", state.level, fight)
-          ? rollDice(4, fight ? state.level * 2 : state.level)
+        const roomOres = resolveChance(items, "ores", level, fight)
+          ? rollDice(4, fight ? level * 2 : level)
           : 0;
-        const roomGems = resolveChance("gems", state.level, fight)
-          ? rollDice(2, fight ? state.level * 2 : state.level)
+        const roomGems = resolveChance(items, "gems", level, fight)
+          ? rollDice(2, fight ? level * 2 : level)
           : 0;
         let message = "";
         if (fight)
-          message += `<@${member}>, you fought a level ${state.level} ${
+          message += `<@${member}>, you fought a level ${level} ${
             monsters[Math.floor(Math.random() * monsters.length)]
           } and won!\n`;
         if (roomGold > 0)
@@ -437,7 +599,7 @@ ${ores} ores`
       }
     }
     state.userLocation = userLocation;
-    if (args.join(" ").match(/⬇|⬆|⬅|➡|⤵|⤴/gi)) {
+    if (args.join(" ").match(/⬇|⬆|⬅|➡|⤵|⤴/gi) && state.dead === false) {
       return commands[args.shift()](server, channelID, args.join(" "), member);
     }
     await drawInstance(server, channelID);
