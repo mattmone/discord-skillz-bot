@@ -15,7 +15,7 @@ const range = [
   {"type": "arbalest", "level": 1, "modifier": 20, "cost": 4000}
 ];
 const spells = [
-  {"type": "magic missle", "level": 1, "modifier": 4, "cost": 400},
+  {"type": "magic missile", "level": 1, "modifier": 4, "cost": 400},
   {"type": "burning hands", "level": 1, "modifier": 6, "cost": 700},
   {"type": "spark", "level": 1, "modifier": 8, "cost": 1000},
   {"type": "fireball", "level": 1, "modifier": 10, "cost": 1500},

@@ -385,8 +385,14 @@ const imageminPngquant = require('imagemin-pngquant');
       armor: [...(servers[server].members[member].items.armor || []) ].splice(0,1)[0],
       rings: [...(servers[server].members[member].items.rings || [])].splice(0,2)
     };
+    messages.push(`You come across the Ancient Man's hut after searching for ${Math.ceil(Math.random()*4)+1} hours.`);
+    messages.push(`the Ancient Man meets you at the door with a grin on his face, like he has been waiting for you.`);
+    messages.push(`He walks out the front door immediatly with an exclaimation of "\`Rando Dungo\`!" and off he heads into the woods.`);
+    messages.push(`You scramble to keep up, following his cut trail, and a short time later, you are standing before the entrance of \`Rando Dungo\`.`);
     if(servers[server].dState.items.weapon)
-      messages.push(`Grabbing your trusty ${servers[server].dState.items.weapon.type}, you enter Rando Dungo!`)
+      messages.push(`Checking the straps of your trusty ${servers[server].dState.items.weapon.type}, you enter \`Rando Dungo\`!`);
+    else
+      messages.push(`Excited for the adventure ahead, you enter \`Rando Dungo\`!`);
     servers[server].dState.userLocation = startLevel(servers[server].dState, 1);
     return await drawInstance(server);
   }
