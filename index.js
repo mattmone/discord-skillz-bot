@@ -266,6 +266,7 @@ const imageminPngquant = require('imagemin-pngquant');
   }
   async function showInventory(server, channelID, args, member) {
     messages.push('```');
+    if(!servers[server].members[member].items) servers[server].members[member].items = {weapons: [], armor: [], rings: []};
     let { items } = servers[server].members[member];
     messages.push(`${'-'.repeat(5)}WEAPONS${'-'.repeat(21)}`);
     if(items.weapons) items.weapons.forEach(item => messages.push(listItem(item, 34)));
