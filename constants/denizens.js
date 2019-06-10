@@ -9,7 +9,8 @@ const monsters = [
   "bad performance eval",
   "toed shoe",
   "doorcat",
-  "Ralph's food truck"
+  "Ralph's food truck",
+  "the Pharoah <:tilted_pharoah:587653604702158862>"
 ];
 
 const bosses = [
